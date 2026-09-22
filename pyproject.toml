@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph-rag"
+version = "0.1.0"
+description = "Graph RAG: build a knowledge graph from text and answer multi-hop questions by traversing it."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Samir Chavez" }]
+dependencies = ["networkx>=3.0"]
+
+[project.optional-dependencies]
+# LLM-based triple extraction for real text (reads OPENAI_API_KEY from .env).
+openai = ["openai>=1.0", "python-dotenv>=1.0"]
+dev = ["pytest>=7.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
