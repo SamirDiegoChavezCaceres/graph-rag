@@ -7,6 +7,16 @@ it, the kind of question flat vector RAG misses.
 
 ![demo](assets/demo.gif)
 
+The demo (`scripts/demo.py`) runs fully offline on the tiny text corpus in
+[`corpus/`](corpus): three plain-English files with sentences like *"Ada founded
+Acme. Acme acquired Beta. Beta built Orion."* It (1) extracts triples and builds
+the graph, printing the triple count and the most central entities by PageRank,
+(2) answers the multi-hop question *"How is Ada related to Orion?"* by walking
+`Ada -> Acme -> Beta -> Orion`, (3) explains why flat vector RAG misses it (no
+single sentence names both Ada and Orion), and (4) runs a neighborhood query
+around `Beta`. No API key needed; the rule-based extractor handles this clean
+text.
+
 ## Why a graph
 
 Vector RAG retrieves chunks by similarity, so it answers well when the facts sit
