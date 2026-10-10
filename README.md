@@ -13,9 +13,10 @@ Beta. Beta built Orion."* It extracts triples with the OpenAI `LLMExtractor` whe
 `OPENAI_API_KEY` is set, otherwise the offline rule-based extractor, then (1)
 builds the graph and prints the triple count and the most central entities by
 PageRank, (2) answers the multi-hop question *"How is Ada related to Orion?"* by
-walking `Ada -> Acme -> Beta -> Orion`, (3) explains why flat vector RAG misses
-it (no single sentence names both Ada and Orion), and (4) runs a neighborhood
-query around `Beta`.
+walking `Ada -> Acme -> Beta -> Orion`, (3) shows why flat vector RAG misses it
+by scanning the corpus (no single document names both Ada and Orion, so a chunk
+retriever has no passage that links them), and (4) runs a neighborhood query
+around `Beta`.
 
 ## Why a graph
 

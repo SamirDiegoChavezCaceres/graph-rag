@@ -55,9 +55,12 @@ def main() -> None:
     print(f"  seeds: {res.seeds}")
     print(f"  path : {res.render()}")
 
-    rule("3. Why flat vector RAG struggles here")
-    print("  No single sentence mentions both 'Ada' and 'Orion', so chunk")
-    print("  similarity never links them. The graph walks Ada -> ... -> Orion.")
+    rule("3. Why flat vector RAG struggles here (shown, not claimed)")
+    for file in sorted(CORPUS.glob("*")):
+        text = file.read_text(encoding="utf-8")
+        print(f"  {file.name:14} Ada={'Ada' in text}  Orion={'Orion' in text}")
+    print("  -> no single document mentions both, so a chunk retriever has no")
+    print(f"     passage that links them. The graph does: {res.render()}")
 
     rule("4. Neighborhood query")
     q2 = "What do we know around Beta?"
