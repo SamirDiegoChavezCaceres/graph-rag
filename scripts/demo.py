@@ -7,11 +7,61 @@ why flat vector RAG misses it.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from graph_rag import GraphRAG
 
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
+
+_STOP = frozenset("how is are the a an of to in on at and or do does related".split())
+
+
+def sentences():
+    """Every sentence in the corpus, the unit a chunk retriever would index."""
+    out = []
+    for file in sorted(CORPUS.glob("*")):
+        for s in re.split(r"(?<=[.!?])\s+", file.read_text(encoding="utf-8").strip()):
+            if s.strip():
+                out.append(s.strip())
+    return out
+
+
+def flat_retrieve(query, chunks, k=3):
+    """Offline, dependency-free lexical retrieval (token overlap), so the 'flat
+    RAG' baseline runs anywhere. It ranks chunks by shared words with the query."""
+    q = {w for w in re.findall(r"[A-Za-z0-9]+", query.lower()) if w not in _STOP}
+    scored = [(c, len(q & set(re.findall(r"[A-Za-z0-9]+", c.lower())))) for c in chunks]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [c for c, s in scored[:k]]
+
+
+def make_answerer():
+    """Return a grounded answer(query, context) via OpenAI, or None when offline."""
+    if not os.getenv("OPENAI_API_KEY"):
+        return None
+    try:
+        from openai import OpenAI
+    except Exception:
+        return None
+    client = OpenAI()
+    model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+
+    def answer(query: str, context: str) -> str:
+        resp = client.chat.completions.create(
+            model=model, temperature=0,
+            messages=[
+                {"role": "system", "content":
+                 "Answer using ONLY the facts. Connect the two things in the question "
+                 "by chaining the facts step by step, even if the link is indirect. If "
+                 "the facts do not connect them at all, say you cannot tell from the "
+                 "given facts. Answer in one sentence on a single line."},
+                {"role": "user", "content": f"Facts:\n{context}\n\nQuestion: {query}"},
+            ],
+        )
+        return (resp.choices[0].message.content or "").strip()
+
+    return answer
 
 
 def pick_extractor():
@@ -55,12 +105,22 @@ def main() -> None:
     print(f"  seeds: {res.seeds}")
     print(f"  path : {res.render()}")
 
-    rule("3. Why flat vector RAG struggles here (shown, not claimed)")
-    for file in sorted(CORPUS.glob("*")):
-        text = file.read_text(encoding="utf-8")
-        print(f"  {file.name:14} Ada={'Ada' in text}  Orion={'Orion' in text}")
-    print("  -> no single document mentions both, so a chunk retriever has no")
-    print(f"     passage that links them. The graph does: {res.render()}")
+    rule("3. No graph (flat retrieval) vs graph, same question")
+    top = flat_retrieve(q, sentences(), k=3)
+    print("  flat RAG retrieves the 3 passages most similar to the question:")
+    for c in top:
+        print(f"    - {c}")
+    print("  the bridge 'Acme acquired Beta' is not retrieved (it names neither")
+    print("  Ada nor Orion), so flat context cannot connect them.")
+    answer = make_answerer()
+    if answer:
+        flat_ctx = "\n".join(top)
+        graph_ctx = "; ".join(f"{s} {r.replace('_', ' ')} {o}" for s, r, o in res.path)
+        print(f"  no graph -> {answer(q, flat_ctx)}")
+        print(f"  graph    -> {answer(q, graph_ctx)}")
+    else:
+        print(f"  graph path -> {res.render()}")
+        print("  (set OPENAI_API_KEY to also generate both answers)")
 
     rule("4. Neighborhood query")
     q2 = "What do we know around Beta?"
