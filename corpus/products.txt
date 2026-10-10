@@ -1,1 +1,1 @@
-Beta develops Orion. Orion uses Pytorch.
+Beta built Orion. Beta develops Orion. Orion uses Pytorch.
