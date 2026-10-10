@@ -7,15 +7,15 @@ it, the kind of question flat vector RAG misses.
 
 ![demo](assets/demo.gif)
 
-The demo (`scripts/demo.py`) runs fully offline on the tiny text corpus in
-[`corpus/`](corpus): three plain-English files with sentences like *"Ada founded
-Acme. Acme acquired Beta. Beta built Orion."* It (1) extracts triples and builds
-the graph, printing the triple count and the most central entities by PageRank,
-(2) answers the multi-hop question *"How is Ada related to Orion?"* by walking
-`Ada -> Acme -> Beta -> Orion`, (3) explains why flat vector RAG misses it (no
-single sentence names both Ada and Orion), and (4) runs a neighborhood query
-around `Beta`. No API key needed; the rule-based extractor handles this clean
-text.
+The demo (`scripts/demo.py`) runs on the tiny text corpus in [`corpus/`](corpus):
+three plain-English files with sentences like *"Ada founded Acme. Acme acquired
+Beta. Beta built Orion."* It extracts triples with the OpenAI `LLMExtractor` when
+`OPENAI_API_KEY` is set, otherwise the offline rule-based extractor, then (1)
+builds the graph and prints the triple count and the most central entities by
+PageRank, (2) answers the multi-hop question *"How is Ada related to Orion?"* by
+walking `Ada -> Acme -> Beta -> Orion`, (3) explains why flat vector RAG misses
+it (no single sentence names both Ada and Orion), and (4) runs a neighborhood
+query around `Beta`.
 
 ## Why a graph
 
@@ -34,9 +34,10 @@ How is Ada related to Orion?
 
 ## How it works
 
-1. **Extract triples.** The default extractor is rule-based and offline (proper-
-   noun entities + a known relation phrase between them). Real, messy text uses
-   an LLM extractor behind the same interface (`openai` extra).
+1. **Extract triples.** Real, messy text uses the `LLMExtractor` (OpenAI, the
+   `openai` extra), which asks the model for JSON triples. A rule-based extractor
+   (proper-noun entities + a known relation phrase) sits behind the same
+   interface for offline, deterministic runs in tests and CI.
 2. **Build the graph** with `networkx` (entities are nodes, relations are edges).
 3. **Retrieve.** Link the question to entities, then either find the shortest
    connecting path (multi-hop) or expand the k-hop neighborhood around a seed.

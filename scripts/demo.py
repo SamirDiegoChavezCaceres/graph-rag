@@ -6,6 +6,7 @@ why flat vector RAG misses it.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from graph_rag import GraphRAG
@@ -13,12 +14,33 @@ from graph_rag import GraphRAG
 CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 
 
+def pick_extractor():
+    """The real path is LLM extraction; use it when a key is set, else the
+    offline rule-based extractor so the demo still runs."""
+    try:
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except Exception:
+        pass
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            from graph_rag import LLMExtractor
+
+            return LLMExtractor(), "LLMExtractor (OpenAI)"
+        except Exception:
+            pass
+    return None, "RuleBasedExtractor (offline)"
+
+
 def rule(title: str) -> None:
     print(f"\n=== {title} ===")
 
 
 def main() -> None:
-    rag = GraphRAG()
+    extractor, name = pick_extractor()
+    rag = GraphRAG(extractor=extractor) if extractor else GraphRAG()
+    print(f"extractor: {name}")
     n = rag.ingest_directory(str(CORPUS))
 
     rule("1. Build the knowledge graph")
